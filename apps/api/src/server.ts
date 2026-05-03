@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
+import { loadEnv } from "./config/env.js";
 
-const port = Number(process.env.PORT ?? 4000);
-const app = createApp();
+const env = loadEnv();
+const app = await createApp({ env });
 
-app.listen(port);
+app.listen(env.PORT);
