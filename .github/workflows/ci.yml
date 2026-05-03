@@ -39,6 +39,7 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:migrate -- --name ci_validation
       - run: npm run db:seed
+      - run: bash scripts/check-product-boundary.sh
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
