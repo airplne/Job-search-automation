@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DELETED
+  SUSPENDED
+}
+
+enum ConsentType {
+  PRODUCT_BOUNDARIES
+  RESUME_PROCESSING
+  EMAIL_ALERT_INGESTION
+  GENERATED_MATERIALS
+}
+
+enum SourceClassification {
+  SAFE_FOR_MVP
+  SAFE_WITH_EXPLICIT_USER_CONSENT
+  REQUIRES_LEGAL_REVIEW
+  DO_NOT_BUILD
+}
+
+enum AcquisitionMethod {
+  manual_user_link
+  csv_upload
+  user_authorized_email_alert
+  official_api
+  browser_extension_user_click
+  scrape
+  headless_browser
+  platform_automation
+  bulk_content_copy
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+  ARCHIVED
+}
+
+enum GeneratedMaterialStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  status       UserStatus    @default(ACTIVE)
+  timezone     String?
+  privacyRegion String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  consents     Consent[]
+  sourceEvents SourceEvent[]
+  jobListings  JobListing[]
+  applications Application[]
+  auditLogs    AuditLog[]
+  generatedMaterials GeneratedMaterial[]
+}
+
+model Consent {
+  id          String      @id @default(cuid())
+  userId      String
+  consentType ConsentType
+  version     String
+  scope       Json?
+  grantedAt   DateTime    @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([userId, consentType, revokedAt])
+}
+
+model SourcePolicy {
+  id                String               @id @default(cuid())
+  provider          String
+  acquisitionMethod AcquisitionMethod
+  classification    SourceClassification
+  legalStatus       String
+  allowedData       String[]
+  disallowedData    String[]
+  retentionNote     String
+  enabled           Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  sourceEvents      SourceEvent[]
+
+  @@unique([provider, acquisitionMethod])
+  @@index([enabled, classification])
+}
+
+model SourceEvent {
+  id                String            @id @default(cuid())
+  userId            String
+  sourcePolicyId    String
+  provider          String
+  acquisitionMethod AcquisitionMethod
+  sourceUrl         String?
+  externalMessageId String?
+  receivedAt        DateTime          @default(now())
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  user              User              @relation(fields: [userId], references: [id])
+  sourcePolicy      SourcePolicy      @relation(fields: [sourcePolicyId], references: [id])
+  jobListings       JobListing[]
+
+  @@index([userId, provider, receivedAt])
+}
+
+model JobListing {
+  id                 String          @id @default(cuid())
+  userId             String
+  sourceEventId      String
+  title              String
+  companyName        String
+  location           String?
+  remoteType         String?
+  salaryMin          Int?
+  salaryMax          Int?
+  currency           String?
+  sourceProvider     String
+  sourceUrl          String
+  canonicalUrl       String?
+  descriptionSummary String?
+  firstSeenAt        DateTime        @default(now())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  user               User            @relation(fields: [userId], references: [id])
+  sourceEvent        SourceEvent     @relation(fields: [sourceEventId], references: [id])
+  applications       Application[]
+  generatedMaterials GeneratedMaterial[]
+
+  @@index([userId, companyName, title])
+  @@index([userId, canonicalUrl])
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  userId       String
+  jobListingId String
+  status       ApplicationStatus @default(SAVED)
+  notes        String?
+  appliedAt    DateTime?
+  nextActionAt DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id])
+  jobListing   JobListing        @relation(fields: [jobListingId], references: [id])
+
+  @@index([userId, status, nextActionAt])
+  @@unique([userId, jobListingId])
+}
+
+model GeneratedMaterial {
+  id           String                  @id @default(cuid())
+  userId       String
+  jobListingId String?
+  documentType String
+  contentUri   String?
+  contentTextDev String?
+  status       GeneratedMaterialStatus @default(DRAFT)
+  claimsMap    Json?
+  model        String?
+  promptVersion String?
+  approvedAt   DateTime?
+  createdAt    DateTime                @default(now())
+  user         User                    @relation(fields: [userId], references: [id])
+  jobListing   JobListing?             @relation(fields: [jobListingId], references: [id])
+
+  @@index([userId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  actor      String
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, action, createdAt])
+  @@index([targetType, targetId])
+}
