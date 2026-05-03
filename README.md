@@ -43,6 +43,7 @@ The repo is a TypeScript monorepo:
 - ATS/API connectors.
 - Browser extension.
 - Scoring and red-flag detection.
+- Committed `package-lock.json` for `npm ci` reproducibility.
 
 ## Explicit product boundaries
 
@@ -69,11 +70,11 @@ Prerequisites:
 - npm 10+
 - Docker Desktop or compatible Docker runtime
 
-Setup after `package-lock.json` exists:
+Current setup:
 
 ```bash
 cp .env.example .env
-npm ci
+npm install
 docker compose up -d postgres
 npm run db:generate
 npm run db:migrate
@@ -81,7 +82,7 @@ npm run db:seed
 npm run dev
 ```
 
-For the current patch environment, `npm install` may be needed once to create or refresh `package-lock.json`.
+After `package-lock.json` is committed, use `npm ci` instead of `npm install`.
 
 ### Local-only dev auth
 
@@ -152,7 +153,7 @@ API defaults to port `4000`.
 
 ## CI status
 
-A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It runs `npm ci`, Prisma generation, typecheck, lint, tests, and migration validation against a Postgres service.
+A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It currently runs `npm install`, Prisma generation, migration validation, seeding, typecheck, lint, and tests against a Postgres service. Switch CI to `npm ci` after committing `package-lock.json`.
 
 ## Development rule
 
