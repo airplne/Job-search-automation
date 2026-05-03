@@ -32,9 +32,14 @@ Examples: official ATS/API connectors, company career-page ingestion, browser ex
 Contradicts the product boundaries.
 Examples: Indeed scraping, Glassdoor scraping, CAPTCHA bypass, anti-bot evasion, fake accounts, credentials/cookies/session replay, auto-apply, auto-message, screening-question automation, bulk Glassdoor content copying.
 
+## Explicit code-level blocked actions
+The shared guardrail utility explicitly represents and blocks: `captcha_bypass`, `anti_bot_evasion`, `credential_collection`, `cookie_session_replay`, `auto_apply`, `auto_message`, `auto_save_on_platform`, `screening_answer_automation`, `indeed_scrape`, `glassdoor_scrape`, `headless_browser`, `platform_automation`, and `bulk_glassdoor_content_copy`.
+
 ## Engineering enforcement
 - Compliance decisions must live in code and tests, not only in documentation.
 - Guardrail tests must fail if prohibited providers and methods are allowed.
-- Manual import should store the user-provided URL and user-entered fields without crawling prohibited platforms.
-- All future importers must call `assertSourceAllowed` before creating source events.
+- Manual import stores the user-provided URL and user-entered/reviewed fields without fetching prohibited platform pages.
+- MVP manual import must not fetch Indeed or Glassdoor pages. Future changes require legal review and explicit source policy approval.
+- All future importers must call the canonical `store.checkSourcePolicy(...)` path before creating source events.
+- Source events must be created before job listings.
 - All future generated-material flows must call an approval service before marking content approved.
