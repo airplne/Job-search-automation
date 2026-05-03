@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npm run db:generate
       - run: npm run db:migrate -- --name ci_validation
       - run: npm run db:seed
