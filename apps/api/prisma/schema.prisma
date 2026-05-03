@@ -34,9 +34,20 @@ enum AcquisitionMethod {
   official_api
   browser_extension_user_click
   scrape
+  indeed_scrape
+  glassdoor_scrape
   headless_browser
   platform_automation
   bulk_content_copy
+  bulk_glassdoor_content_copy
+  captcha_bypass
+  anti_bot_evasion
+  credential_collection
+  cookie_session_replay
+  auto_apply
+  auto_message
+  auto_save_on_platform
+  screening_answer_automation
 }
 
 enum ApplicationStatus {
@@ -55,19 +66,19 @@ enum GeneratedMaterialStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String?
-  status       UserStatus    @default(ACTIVE)
-  timezone     String?
-  privacyRegion String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  consents     Consent[]
-  sourceEvents SourceEvent[]
-  jobListings  JobListing[]
-  applications Application[]
-  auditLogs    AuditLog[]
+  id                 String              @id
+  email              String              @unique
+  name               String?
+  status             UserStatus          @default(ACTIVE)
+  timezone           String?
+  privacyRegion      String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  consents           Consent[]
+  sourceEvents       SourceEvent[]
+  jobListings        JobListing[]
+  applications       Application[]
+  auditLogs          AuditLog[]
   generatedMaterials GeneratedMaterial[]
 }
 
@@ -80,7 +91,7 @@ model Consent {
   grantedAt   DateTime    @default(now())
   revokedAt   DateTime?
   createdAt   DateTime    @default(now())
-  user        User        @relation(fields: [userId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, consentType, revokedAt])
 }
@@ -114,7 +125,7 @@ model SourceEvent {
   receivedAt        DateTime          @default(now())
   metadata          Json?
   createdAt         DateTime          @default(now())
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   sourcePolicy      SourcePolicy      @relation(fields: [sourcePolicyId], references: [id])
   jobListings       JobListing[]
 
@@ -139,7 +150,7 @@ model JobListing {
   firstSeenAt        DateTime        @default(now())
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  user               User            @relation(fields: [userId], references: [id])
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   sourceEvent        SourceEvent     @relation(fields: [sourceEventId], references: [id])
   applications       Application[]
   generatedMaterials GeneratedMaterial[]
@@ -158,28 +169,28 @@ model Application {
   nextActionAt DateTime?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
-  user         User              @relation(fields: [userId], references: [id])
-  jobListing   JobListing        @relation(fields: [jobListingId], references: [id])
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListing   JobListing        @relation(fields: [jobListingId], references: [id], onDelete: Cascade)
 
   @@index([userId, status, nextActionAt])
   @@unique([userId, jobListingId])
 }
 
 model GeneratedMaterial {
-  id           String                  @id @default(cuid())
-  userId       String
-  jobListingId String?
-  documentType String
-  contentUri   String?
+  id             String                  @id @default(cuid())
+  userId         String
+  jobListingId   String?
+  documentType   String
+  contentUri     String?
   contentTextDev String?
-  status       GeneratedMaterialStatus @default(DRAFT)
-  claimsMap    Json?
-  model        String?
-  promptVersion String?
-  approvedAt   DateTime?
-  createdAt    DateTime                @default(now())
-  user         User                    @relation(fields: [userId], references: [id])
-  jobListing   JobListing?             @relation(fields: [jobListingId], references: [id])
+  status         GeneratedMaterialStatus @default(DRAFT)
+  claimsMap      Json?
+  model          String?
+  promptVersion  String?
+  approvedAt     DateTime?
+  createdAt      DateTime                @default(now())
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListing     JobListing?             @relation(fields: [jobListingId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
 }
@@ -194,7 +205,7 @@ model AuditLog {
   metadata   Json?
   ipHash     String?
   createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, action, createdAt])
   @@index([targetType, targetId])
