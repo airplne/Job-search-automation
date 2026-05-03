@@ -10,6 +10,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
 });
 
+const unsafeDefaultSecrets = new Set(["replace-me-in-dev", "local-development-placeholder"]);
+
 export type AppEnv = z.infer<typeof envSchema> & {
   isProduction: boolean;
   isDevAuthEnabled: boolean;
@@ -20,7 +22,7 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): AppEnv {
   const parsed = envSchema.parse(input);
   const isProduction = parsed.NODE_ENV === "production";
 
-  if (isProduction && parsed.SESSION_SECRET === "replace-me-in-dev") {
+  if (isProduction && unsafeDefaultSecrets.has(parsed.SESSION_SECRET)) {
     throw new Error("SESSION_SECRET must be changed outside local development");
   }
 
