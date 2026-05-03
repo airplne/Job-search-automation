@@ -1,17 +1,22 @@
 # 09 Risk Register
 
-| Risk | Severity | Likelihood | Owner | Mitigation | Detection mechanism | Contingency plan |
-|---|---:|---:|---|---|---|---|
-| Platform compliance risk | Critical | Medium | PM + Legal | Deny-by-default registry; prohibited automation tests; code review checklist | Blocked-source events, compliance test failures | Disable source/feature and patch policy |
-| Email OAuth verification risk | High | Medium | Platform Eng | Minimal scopes, verification plan, scoped query UX | OAuth review feedback, auth failures | Keep manual import and CSV path |
-| Privacy/security risk | Critical | Medium | Security | Encryption, owner-only authz, PII-safe logs, deletion/export | Security tests, log scans, access audits | Incident response and feature freeze |
-| Resume data breach risk | Critical | Low/Medium | Platform Eng | KMS/object encryption, signed URLs, no raw resume logs | Access logs, storage alerts | Revoke URLs, rotate keys, notify users as required |
-| LLM hallucination risk | High | High | AI Eng | Claim tracing, schemas, user approval, eval fixtures | Unsupported-claim tests, user reports | Disable generation and fall back to templates |
-| Misrepresentation risk | High | Medium | PM + AI Eng | No auto-submit; no screening answers; approval gates | Draft review telemetry, audits | Draft-only mode and stricter claim filters |
-| Bias/fairness risk | High | Medium | AI Eng + Legal | No protected-class fields; explainable user-side scoring | Scoring audits, regression tests | Rules-only scoring and field removal |
-| Parser quality risk | Medium | High | Backend Eng | Fixtures, confidence fields, manual review fallback | Parser failure metrics, user edits | Manual entry and review queue |
-| Duplicate detection risk | Medium | Medium | Backend Eng | Conservative thresholds, source history, undo | Merge undo rate, duplicate reports | Disable auto-merge, review-only dedupe |
-| Poor ranking quality risk | Medium | Medium | AI Eng | Rules-first scoring, explanations, feedback controls | Save/reject metrics, regression drift | Manual sorting/filtering fallback |
-| Browser extension compliance risk | High | Medium | PM + Legal | Defer; strict permissions; legal/security review | Extension permission review, tests | Keep manual link import only |
-| User trust risk | High | Medium | PM/Design | Transparent source attribution, explanations, privacy controls | Support tickets, churn, NPS | More manual controls and clearer copy |
-| Vendor/API availability risk | Medium | Medium | Backend Eng | Connector abstraction, graceful disable | Error rates, API status | Disable connector and use manual import |
+| Risk | Severity | Likelihood | Owner | Mitigation | Detection mechanism | Contingency plan | Current status after Sprint 1 hardening |
+|---|---:|---:|---|---|---|---|---|
+| Platform compliance risk | Critical | Medium | PM + Legal | Deny-by-default registry; prohibited automation tests; code review checklist | Blocked-source events, compliance test failures | Disable source/feature and patch policy | Runtime guardrails strengthened; no prohibited runtime code found. |
+| Email OAuth verification risk | High | Medium | Platform Eng | Minimal scopes, verification plan, scoped query UX | OAuth review feedback, auth failures | Keep manual import and CSV path | Deferred; do not start in Sprint 1 acceptance patch. |
+| Privacy/security risk | Critical | Medium | Security | Encryption, owner-only authz, PII-safe logs, deletion/export | Security tests, log scans, access audits | Incident response and feature freeze | Auth scaffold now fails closed; export/delete are audited stubs. |
+| Resume data breach risk | Critical | Low/Medium | Platform Eng | KMS/object encryption, signed URLs, no raw resume logs | Access logs, storage alerts | Revoke URLs, rotate keys, notify users as required | Deferred; resume upload not implemented. |
+| LLM hallucination risk | High | High | AI Eng | Claim tracing, schemas, user approval, eval fixtures | Unsupported-claim tests, user reports | Disable generation and fall back to templates | Deferred; no LLM drafting added. |
+| Misrepresentation risk | High | Medium | PM + AI Eng | No auto-submit; no screening answers; approval gates | Draft review telemetry, audits | Draft-only mode and stricter claim filters | Runtime prohibited-action guardrails now explicit. |
+| Bias/fairness risk | High | Medium | AI Eng + Legal | No protected-class fields; explainable user-side scoring | Scoring audits, regression tests | Rules-only scoring and field removal | Deferred; scoring not implemented. |
+| Parser quality risk | Medium | High | Backend Eng | Fixtures, confidence fields, manual review fallback | Parser failure metrics, user edits | Manual entry and review queue | Deferred; parser not implemented. |
+| Duplicate detection risk | Medium | Medium | Backend Eng | Conservative thresholds, source history, undo | Merge undo rate, duplicate reports | Disable auto-merge, review-only dedupe | Deferred. |
+| Poor ranking quality risk | Medium | Medium | AI Eng | Rules-first scoring, explanations, feedback controls | Save/reject metrics, regression drift | Manual sorting/filtering fallback | Deferred. |
+| Browser extension compliance risk | High | Medium | PM + Legal | Defer; strict permissions; legal/security review | Extension permission review, tests | Keep manual link import only | Deferred; no browser extension work added. |
+| User trust risk | High | Medium | PM/Design | Transparent source attribution, explanations, privacy controls | Support tickets, churn, NPS | More manual controls and clearer copy | Source attribution enforced by manual import persistence. |
+| Vendor/API availability risk | Medium | Medium | Backend Eng | Connector abstraction, graceful disable | Error rates, API status | Disable connector and use manual import | Deferred. |
+| Missing lockfile / dependency reproducibility | High | High | Dev Team | Generate and commit `package-lock.json`; switch CI to `npm ci` | `npm ci` success in clean checkout; CI install step | Block Sprint 2 until lockfile is committed and CI uses `npm ci` | Open in this environment: lockfile generated locally but could not be committed through connector. |
+| Unverified CI / validation | High | Medium | Dev Team | Run full setup, typecheck, lint, tests, and DB commands in CI | Green GitHub Actions run and validation logs | Block Sprint 2 until CI is green | Partially mitigated: CI exists; green run not confirmed here. |
+| Remaining agent/tooling ambiguity | Medium | Medium | Dev Team + PM | Remove highest-risk files; mark remaining assets non-product; add runtime grep guard | CI product-boundary grep; repo search/code review | Fully remove `.agents`/`_bmad` if ambiguity persists | Partially mitigated: high-risk TEA config/templates removed; runtime grep added; residual non-product docs remain. |
+| Prisma/Postgres validation risk | High | Medium | Backend Eng | Add DB-backed smoke test using real `PrismaStore` | Prisma smoke test in CI after migrations/seed | Block Sprint 2 until DB smoke passes | Mitigation added: `apps/api/tests/prisma-smoke.test.ts`; result not verified here. |
+| CI migration/import proof risk | High | Medium | Backend Eng | Run migrations, seed, and Prisma smoke test in CI | CI run includes migrate, seed, and `npm test` | Revert to migration-only acceptance or block until fixed | Mitigation added to workflow/test suite; green result not confirmed here. |
