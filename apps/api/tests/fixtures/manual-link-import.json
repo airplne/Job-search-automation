@@ -1,0 +1,8 @@
+{
+  "userId": "fixture_user",
+  "provider": "manual",
+  "sourceUrl": "https://example.com/careers/software-engineer",
+  "title": "Software Engineer",
+  "companyName": "Example Co",
+  "location": "Remote"
+}
