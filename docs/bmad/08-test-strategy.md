@@ -1,5 +1,11 @@
 # 08 Test Strategy
 
+## Current Sprint 1 validation status
+- Shared compliance guardrail tests exist for explicit prohibited actions, deny-by-default source policies, disabled policies, legal-review policies, do-not-build policies, and consent-required MVP policies.
+- API hardening tests exist for local dev auth gating, protected-route authentication, body `userId` impersonation resistance, consent grant/revoke behavior, audit route gating, manual import validation, and privacy route stubs.
+- DB-backed smoke proof has been added in `apps/api/tests/prisma-smoke.test.ts` and must run after Prisma generation, migrations, and seed in CI.
+- Full validation is not complete until a real checkout confirms `npm ci`, Postgres startup, Prisma generation, migrations, seed, typecheck, lint, and tests all pass.
+
 ## Unit tests
 - Compliance source-policy decisions.
 - Prohibited-action detection.
@@ -14,13 +20,26 @@
 - Consent revocation blocks sensitive actions.
 - Export/delete scaffolding returns expected user-owned data boundaries.
 
+## Prisma/Postgres smoke test
+The Sprint 1 acceptance suite must include a DB-backed proof, not only in-memory API tests. `apps/api/tests/prisma-smoke.test.ts` verifies:
+- Migrations have created the tables needed by Prisma Client.
+- Seeded source policies include allowed MVP manual import policy.
+- Consent can be granted and read through the real `PrismaStore`.
+- Manual import creates a `SourceEvent` before a linked `JobListing`.
+- `JobListing.sourceEventId` points at the persisted source event.
+- Failed source-policy checks do not create source events or job listings.
+
+CI must run this after `npm run db:generate`, `npm run db:migrate`, and `npm run db:seed` against Postgres.
+
 ## Compliance guardrail tests
 - Indeed scraping is rejected.
 - Glassdoor scraping is rejected.
 - Headless browser automation is rejected.
 - CAPTCHA bypass and anti-bot evasion are rejected.
-- Auto-apply, auto-message, and screening-answer automation are rejected.
+- Credential collection and cookie/session replay are rejected.
+- Auto-save, auto-apply, auto-message, and screening-answer automation are rejected.
 - Glassdoor bulk review/salary/rating/interview content is rejected.
+- Product runtime code must not reference `.agents`, `_bmad`, Playwright, `browser automation`, or TEA browser automation config. CI runs `scripts/check-product-boundary.sh` to enforce this for `apps/` and `packages/`.
 
 ## Parser fixture tests
 Planned parser fixtures validate deterministic extraction and review fallbacks. Parser output must include source attribution, confidence, and missing-field flags.
@@ -32,6 +51,7 @@ Planned scoring tests cover high-fit, medium-fit, low-fit, impossible location, 
 - Export includes all user-owned records and excludes other users.
 - Delete removes or anonymizes user-owned records.
 - Tokens and object storage entries are revoked/deleted once those systems ship.
+- Current Sprint 1 export/delete routes are authenticated audited `501` stubs only.
 
 ## Authz tests
 Every user-owned endpoint must reject cross-user reads/writes.
