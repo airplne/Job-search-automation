@@ -1,5 +1,24 @@
 # 07 Data Model
 
+## Implemented now vs planned
+
+| Entity | Prisma implemented in Sprint 1 hardening | Notes |
+|---|---:|---|
+| users | Yes | Local/dev identity only; production auth provider is planned. |
+| user_profiles | No | Planned for Sprint 3. |
+| profile_facts | No | Planned for Sprint 3 with user confirmation. |
+| documents | No | Planned for Sprint 3; no resume upload in Sprint 1. |
+| source_policies | Yes | Seeded default policies; deny-by-default service behavior. |
+| source_events | Yes | Created before every successful manual job import. |
+| job_listings | Yes | Linked to source_events and source attribution. |
+| canonical_jobs | No | Planned for Sprint 4 dedupe. |
+| job_scores | No | Planned for Sprint 4 scoring. |
+| applications | Yes, schema only | API work deferred; no Sprint 2 expansion in hardening patch. |
+| generated_materials | Yes, schema only | `contentTextDev` is development-only; encrypted storage required before production use. |
+| consents | Yes | Grant/revoke persisted; service revokes prior active consent of same type. |
+| audit_logs | Yes | Persisted and not publicly exposed. |
+| reminders | No | Planned after core CRM. |
+
 ## users
 - Purpose: account identity.
 - Fields: id, email, name, status, timezone, privacy_region, created_at, updated_at.
@@ -38,7 +57,7 @@
 
 ## source_policies
 - Purpose: source compliance registry.
-- Fields: id, provider, acquisition_method, classification, legal_status, allowed_data, disallowed_data, retention_note, enabled, created_at, updated_at.
+- Fields: id, provider, acquisition_method, classification, legal_status, allowed_data, disallowed_data, retention_note, enabled, requires_consent, created_at, updated_at.
 - Sensitive fields: none generally.
 - Retention notes: retain for audit/history.
 - Indexes: provider + acquisition_method unique, enabled, classification.
@@ -47,7 +66,7 @@
 
 ## source_events
 - Purpose: provenance for every import.
-- Fields: id, user_id, source_policy_id, source_type, provider, acquisition_method, source_url, external_message_id, received_at, metadata, created_at.
+- Fields: id, user_id, source_policy_id, provider, acquisition_method, source_url, external_message_id, received_at, metadata, created_at.
 - Sensitive fields: email metadata, source_url may include personal tracking params.
 - Retention notes: minimize raw content; delete/anonymize with user.
 - Indexes: user_id, provider, source_policy_id, received_at.
@@ -94,7 +113,7 @@
 - Purpose: resume suggestions, cover letters, future message drafts.
 - Fields: id, user_id, job_listing_id, document_type, content_uri, content_text_dev, status, claims_map, model, prompt_version, approved_at, created_at.
 - Sensitive fields: all content and claims.
-- Retention notes: encrypt at rest; delete with user.
+- Retention notes: `content_text_dev` is development-only and must not be used in production; encrypted object storage is required before launch.
 - Indexes: user_id, job_listing_id, status.
 - Ownership rules: owner only.
 - Audit requirements: generate, edit, approve, delete.
