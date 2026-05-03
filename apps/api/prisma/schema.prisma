@@ -106,6 +106,7 @@ model SourcePolicy {
   disallowedData    String[]
   retentionNote     String
   enabled           Boolean              @default(false)
+  requiresConsent   Boolean              @default(true)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   sourceEvents      SourceEvent[]
