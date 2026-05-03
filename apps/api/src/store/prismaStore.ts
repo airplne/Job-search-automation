@@ -1,12 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { defaultMvpSourcePolicies, evaluateSourcePolicy, type AcquisitionMethod, type SourcePolicy } from "@job-search-automation/shared";
 import type { AppStore, AuditInput, AuditRecord, ConsentInput, ImportLinkInput, JobListingRecord, SourceEventRecord, UserInput } from "./store.js";
+
+function jsonOrUndefined(value: unknown): Prisma.InputJsonValue | undefined {
+  return value === undefined ? undefined : (value as Prisma.InputJsonValue);
+}
 
 function toPolicy(row: {
   provider: string;
   acquisitionMethod: string;
   classification: string;
   enabled: boolean;
+  requiresConsent: boolean;
   legalStatus: string;
   allowedData: string[];
   disallowedData: string[];
@@ -17,7 +22,7 @@ function toPolicy(row: {
     acquisitionMethod: row.acquisitionMethod as AcquisitionMethod,
     classification: row.classification as SourcePolicy["classification"],
     enabled: row.enabled,
-    requiresConsent: true,
+    requiresConsent: row.requiresConsent,
     legalStatus: row.legalStatus,
     allowedData: row.allowedData,
     disallowedData: row.disallowedData,
@@ -43,7 +48,7 @@ export class PrismaStore implements AppStore {
         data: { revokedAt: new Date() },
       });
       await tx.consent.create({
-        data: { userId: input.userId, consentType: input.consentType as never, version: input.version, scope: input.scope as object | undefined },
+        data: { userId: input.userId, consentType: input.consentType as never, version: input.version, scope: jsonOrUndefined(input.scope) },
       });
     });
   }
@@ -73,6 +78,7 @@ export class PrismaStore implements AppStore {
           disallowedData: policy.disallowedData,
           retentionNote: policy.retentionNote,
           enabled: policy.enabled,
+          requiresConsent: policy.requiresConsent,
         },
         create: {
           provider: policy.provider,
@@ -83,6 +89,7 @@ export class PrismaStore implements AppStore {
           disallowedData: policy.disallowedData,
           retentionNote: policy.retentionNote,
           enabled: policy.enabled,
+          requiresConsent: policy.requiresConsent,
         },
       });
     }
@@ -118,7 +125,7 @@ export class PrismaStore implements AppStore {
   }
 
   async writeAudit(event: AuditInput): Promise<void> {
-    await this.prisma.auditLog.create({ data: { userId: event.userId, actor: event.actor, action: event.action, targetType: event.targetType, targetId: event.targetId, metadata: event.metadata } });
+    await this.prisma.auditLog.create({ data: { userId: event.userId, actor: event.actor, action: event.action, targetType: event.targetType, targetId: event.targetId, metadata: jsonOrUndefined(event.metadata) } });
   }
 
   async listAuditEventsForDevAdmin(limit: number): Promise<AuditRecord[]> {
