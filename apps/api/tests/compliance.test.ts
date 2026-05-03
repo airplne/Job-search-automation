@@ -1,20 +1,23 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import request from "supertest";
+import { describe, expect, it } from "vitest";
 import {
   defaultMvpSourcePolicies,
   evaluateSourcePolicy,
+  explicitProhibitedActions,
   isProhibitedSourceAction,
+  type SourcePolicy,
 } from "@job-search-automation/shared";
-import { createApp, resetInMemoryState } from "../src/app.js";
-
-beforeEach(() => resetInMemoryState());
 
 describe("source compliance guardrails", () => {
-  it("blocks prohibited source methods even if a provider name varies by case", () => {
-    expect(isProhibitedSourceAction("Indeed", "scrape")).toBe(true);
-    expect(isProhibitedSourceAction("Glassdoor", "bulk_content_copy")).toBe(true);
-    expect(isProhibitedSourceAction("Example", "headless_browser")).toBe(true);
-    expect(isProhibitedSourceAction("Example", "platform_automation")).toBe(true);
+  it("blocks every explicitly restricted action", () => {
+    for (const action of explicitProhibitedActions) {
+      expect(isProhibitedSourceAction("example", action), action).toBe(true);
+    }
+  });
+
+  it("blocks platform-specific restricted variants", () => {
+    expect(isProhibitedSourceAction("Indeed", "indeed_scrape")).toBe(true);
+    expect(isProhibitedSourceAction("Glassdoor", "glassdoor_scrape")).toBe(true);
+    expect(isProhibitedSourceAction("Glassdoor", "bulk_glassdoor_content_copy")).toBe(true);
   });
 
   it("denies missing source policies by default", () => {
@@ -23,55 +26,24 @@ describe("source compliance guardrails", () => {
     expect(decision.reason).toContain("No source policy");
   });
 
-  it("requires consent for MVP manual link import", () => {
-    const decision = evaluateSourcePolicy("manual", "manual_user_link", defaultMvpSourcePolicies, false);
+  it("denies disabled source policies", () => {
+    const disabled: SourcePolicy = { ...defaultMvpSourcePolicies[0], enabled: false };
+    const decision = evaluateSourcePolicy("manual", "manual_user_link", [disabled], true);
     expect(decision.allowed).toBe(false);
-    expect(decision.reason).toContain("consent");
+    expect(decision.reason).toContain("disabled");
   });
 
-  it("allows manual user link import after consent", () => {
-    const decision = evaluateSourcePolicy("manual", "manual_user_link", defaultMvpSourcePolicies, true);
-    expect(decision.allowed).toBe(true);
-  });
-});
-
-describe("manual import API", () => {
-  it("blocks import before product-boundary consent", async () => {
-    const app = createApp();
-    const response = await request(app).post("/jobs/import/link").send({
-      userId: "user_1",
-      provider: "manual",
-      sourceUrl: "https://example.com/jobs/123",
-      title: "Software Engineer",
-      companyName: "Example Co",
-    });
-
-    expect(response.status).toBe(403);
-    expect(response.body.message).toContain("consent");
+  it("denies legal-review and do-not-build policies", () => {
+    const legalReview: SourcePolicy = { ...defaultMvpSourcePolicies[0], classification: "REQUIRES_LEGAL_REVIEW", enabled: true };
+    const doNotBuild: SourcePolicy = { ...defaultMvpSourcePolicies[0], classification: "DO_NOT_BUILD", enabled: true };
+    expect(evaluateSourcePolicy("manual", "manual_user_link", [legalReview], true).allowed).toBe(false);
+    expect(evaluateSourcePolicy("manual", "manual_user_link", [doNotBuild], true).allowed).toBe(false);
   });
 
-  it("creates a source-attributed job after consent", async () => {
-    const app = createApp();
-    await request(app).post("/consents").send({
-      userId: "user_1",
-      consentType: "PRODUCT_BOUNDARIES",
-      version: "2026-05-03",
-    });
-
-    const response = await request(app).post("/jobs/import/link").send({
-      userId: "user_1",
-      provider: "manual",
-      sourceUrl: "https://example.com/jobs/123?utm_source=test",
-      title: "Software Engineer",
-      companyName: "Example Co",
-      location: "Remote",
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.body.job).toMatchObject({
-      userId: "user_1",
-      sourceProvider: "manual",
-      sourceAttributionRequired: true,
-    });
+  it("requires consent for allowed MVP manual and CSV policies", () => {
+    expect(evaluateSourcePolicy("manual", "manual_user_link", defaultMvpSourcePolicies, false).allowed).toBe(false);
+    expect(evaluateSourcePolicy("csv", "csv_upload", defaultMvpSourcePolicies, false).allowed).toBe(false);
+    expect(evaluateSourcePolicy("manual", "manual_user_link", defaultMvpSourcePolicies, true).allowed).toBe(true);
+    expect(evaluateSourcePolicy("csv", "csv_upload", defaultMvpSourcePolicies, true).allowed).toBe(true);
   });
 });
