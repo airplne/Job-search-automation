@@ -14,9 +14,14 @@ The repo is a TypeScript monorepo:
   apps/api/               Express + TypeScript API skeleton
   apps/web/               Next.js shell
   packages/shared/        Shared compliance and domain utilities
+  scripts/                CI and safety checks
   docker-compose.yml      Local Postgres
   .env.example            Local environment template
 ```
+
+## Sprint 1 hardening status
+
+Sprint 1 hardening has patched the major runtime design issues, but Sprint 1 is not formally accepted until a real checkout proves the full validation suite and CI are green. Sprint 2 must not begin until the remaining acceptance items in `docs/bmad/09-risk-register.md` are closed.
 
 ## Implemented now
 
@@ -26,10 +31,11 @@ The repo is a TypeScript monorepo:
 - Prisma-backed consent, source policy, source event, job listing, and audit services.
 - Manual link import that checks consent and source policy before creating records.
 - Manual link import creates `SourceEvent` first, then a linked `JobListing`.
+- DB-backed smoke test proving source policy seed, consent persistence, source event/job linkage, and no records after failed policy checks.
 - Global audit listing is not public; it is local-dev admin gated and disabled unless `ALLOW_DEV_AUDIT=true`.
 - Privacy export/delete route stubs that require auth, emit audit events, and return `501` until full orchestration is implemented.
 - Granular code-level guardrails and tests for non-negotiable prohibited actions.
-- CI workflow for install, Prisma generation, typecheck, lint, tests, and migration validation.
+- CI workflow for install, Prisma generation, migrations, seed, runtime boundary grep, typecheck, lint, and tests.
 
 ## Planned, not implemented yet
 
@@ -61,6 +67,8 @@ Do not add code paths for:
 - Bulk copying of Glassdoor reviews, salaries, ratings, interview questions, or interview content
 
 Manual import must use user-provided URLs and user-entered/reviewed fields. It must not fetch Indeed or Glassdoor pages unless a future legal review and source policy explicitly allow a specific non-prohibited method.
+
+Sprint 2 must not include email ingestion, LLM drafting, ATS integrations, browser extension work, resume upload, recruiter messaging, application automation, or screening-answer workflows.
 
 ## Local development
 
@@ -119,6 +127,9 @@ x-dev-admin: true
 
 ```bash
 npm run db:generate
+npm run db:migrate
+npm run db:seed
+bash scripts/check-product-boundary.sh
 npm run typecheck
 npm run lint
 npm test
@@ -153,7 +164,7 @@ API defaults to port `4000`.
 
 ## CI status
 
-A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It currently runs `npm install`, Prisma generation, migration validation, seeding, typecheck, lint, and tests against a Postgres service. Switch CI to `npm ci` after committing `package-lock.json`.
+A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It currently runs `npm install`, Prisma generation, migration validation, seeding, product-boundary grep, typecheck, lint, and tests against a Postgres service. Switch CI to `npm ci` after committing `package-lock.json`.
 
 ## Development rule
 
