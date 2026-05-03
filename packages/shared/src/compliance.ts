@@ -11,9 +11,20 @@ export type AcquisitionMethod =
   | "official_api"
   | "browser_extension_user_click"
   | "scrape"
+  | "indeed_scrape"
+  | "glassdoor_scrape"
   | "headless_browser"
   | "platform_automation"
-  | "bulk_content_copy";
+  | "bulk_content_copy"
+  | "bulk_glassdoor_content_copy"
+  | "captcha_bypass"
+  | "anti_bot_evasion"
+  | "credential_collection"
+  | "cookie_session_replay"
+  | "auto_apply"
+  | "auto_message"
+  | "auto_save_on_platform"
+  | "screening_answer_automation";
 
 export interface SourcePolicy {
   provider: string;
@@ -33,13 +44,26 @@ export interface SourceDecision {
   policy?: SourcePolicy;
 }
 
-const prohibitedProviders = new Set(["indeed", "glassdoor"]);
-const prohibitedMethods = new Set<AcquisitionMethod>([
+export const explicitProhibitedActions: readonly AcquisitionMethod[] = [
   "scrape",
+  "indeed_scrape",
+  "glassdoor_scrape",
   "headless_browser",
   "platform_automation",
   "bulk_content_copy",
-]);
+  "bulk_glassdoor_content_copy",
+  "captcha_bypass",
+  "anti_bot_evasion",
+  "credential_collection",
+  "cookie_session_replay",
+  "auto_apply",
+  "auto_message",
+  "auto_save_on_platform",
+  "screening_answer_automation",
+] as const;
+
+const prohibitedProviders = new Set(["indeed", "glassdoor"]);
+const prohibitedMethods = new Set<AcquisitionMethod>(explicitProhibitedActions);
 
 export function normalizeProvider(provider: string): string {
   return provider.trim().toLowerCase();
@@ -101,26 +125,15 @@ export const defaultMvpSourcePolicies: SourcePolicy[] = [
     disallowedData: ["hidden_external_fetches", "credentials", "cookies"],
     retentionNote: "User-controlled retention; row-level errors should avoid raw sensitive data.",
   },
-  {
-    provider: "indeed",
-    acquisitionMethod: "scrape",
-    classification: "DO_NOT_BUILD",
+  ...explicitProhibitedActions.map((acquisitionMethod) => ({
+    provider: acquisitionMethod.includes("glassdoor") ? "glassdoor" : acquisitionMethod.includes("indeed") ? "indeed" : "all",
+    acquisitionMethod,
+    classification: "DO_NOT_BUILD" as const,
     enabled: false,
     requiresConsent: false,
     legalStatus: "prohibited_by_product_boundary",
     allowedData: [],
-    disallowedData: ["scraped_pages", "credentials", "cookies", "automated_saves", "automated_applies"],
+    disallowedData: ["prohibited_product_capability"],
     retentionNote: "No data should be collected through this method.",
-  },
-  {
-    provider: "glassdoor",
-    acquisitionMethod: "scrape",
-    classification: "DO_NOT_BUILD",
-    enabled: false,
-    requiresConsent: false,
-    legalStatus: "prohibited_by_product_boundary",
-    allowedData: [],
-    disallowedData: ["scraped_pages", "reviews", "salaries", "ratings", "interview_content"],
-    retentionNote: "No data should be collected through this method.",
-  },
+  })),
 ];
