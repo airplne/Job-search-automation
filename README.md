@@ -17,11 +17,12 @@ The repo is a TypeScript monorepo:
   scripts/                CI and safety checks
   docker-compose.yml      Local Postgres
   .env.example            Local environment template
+  package-lock.json       npm lockfile for clean npm ci installs
 ```
 
 ## Sprint 1 hardening status
 
-Sprint 1 hardening has patched the major runtime design issues, but Sprint 1 is not formally accepted until a real checkout proves the full validation suite and CI are green. Sprint 2 must not begin until the remaining acceptance items in `docs/bmad/09-risk-register.md` are closed.
+Sprint 1 hardening has patched the major runtime design issues and added the final reproducibility/CI wiring. Sprint 1 is still not formally accepted until a real checkout or GitHub Actions run proves the full validation suite is green. Sprint 2 must not begin until CI is verified green by the review team.
 
 ## Implemented now
 
@@ -35,7 +36,8 @@ Sprint 1 hardening has patched the major runtime design issues, but Sprint 1 is 
 - Global audit listing is not public; it is local-dev admin gated and disabled unless `ALLOW_DEV_AUDIT=true`.
 - Privacy export/delete route stubs that require auth, emit audit events, and return `501` until full orchestration is implemented.
 - Granular code-level guardrails and tests for non-negotiable prohibited actions.
-- CI workflow for install, Prisma generation, migrations, seed, runtime boundary grep, typecheck, lint, and tests.
+- Product-boundary grep script for runtime code under `apps/` and `packages/`.
+- CI workflow using `npm ci`, product-boundary check, Prisma generation, committed migrations via `prisma migrate deploy`, seed, typecheck, lint, and tests.
 
 ## Planned, not implemented yet
 
@@ -49,7 +51,6 @@ Sprint 1 hardening has patched the major runtime design issues, but Sprint 1 is 
 - ATS/API connectors.
 - Browser extension.
 - Scoring and red-flag detection.
-- Committed `package-lock.json` for `npm ci` reproducibility.
 
 ## Explicit product boundaries
 
@@ -82,15 +83,13 @@ Current setup:
 
 ```bash
 cp .env.example .env
-npm install
+npm ci
 docker compose up -d postgres
 npm run db:generate
 npm run db:migrate
 npm run db:seed
 npm run dev
 ```
-
-After `package-lock.json` is committed, use `npm ci` instead of `npm install`.
 
 ### Local-only dev auth
 
@@ -126,6 +125,9 @@ x-dev-admin: true
 ## Validation commands
 
 ```bash
+cp .env.example .env
+npm ci
+docker compose up -d postgres
 npm run db:generate
 npm run db:migrate
 npm run db:seed
@@ -164,7 +166,7 @@ API defaults to port `4000`.
 
 ## CI status
 
-A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It currently runs `npm install`, Prisma generation, migration validation, seeding, product-boundary grep, typecheck, lint, and tests against a Postgres service. Switch CI to `npm ci` after committing `package-lock.json`.
+A GitHub Actions workflow is configured at `.github/workflows/ci.yml`. It uses `npm ci`, applies committed Prisma migrations with `prisma migrate deploy`, seeds source policies, runs the product-boundary grep, typecheck, lint, and tests against a Postgres service. Sprint 1 acceptance requires the workflow to be green.
 
 ## Development rule
 
