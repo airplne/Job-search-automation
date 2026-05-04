@@ -3,8 +3,26 @@
 ## Current Sprint 1 validation status
 - Shared compliance guardrail tests exist for explicit prohibited actions, deny-by-default source policies, disabled policies, legal-review policies, do-not-build policies, and consent-required MVP policies.
 - API hardening tests exist for local dev auth gating, protected-route authentication, body `userId` impersonation resistance, consent grant/revoke behavior, audit route gating, manual import validation, and privacy route stubs.
-- DB-backed smoke proof has been added in `apps/api/tests/prisma-smoke.test.ts` and must run after Prisma generation, migrations, and seed in CI.
-- Full validation is not complete until a real checkout confirms `npm ci`, Postgres startup, Prisma generation, migrations, seed, typecheck, lint, and tests all pass.
+- DB-backed smoke proof exists in `apps/api/tests/prisma-smoke.test.ts` and must run after Prisma generation, committed migrations, and seed in CI.
+- `package-lock.json` is committed so clean installs should use `npm ci`.
+- Full Sprint 1 acceptance is not complete until a real checkout or GitHub Actions confirms `npm ci`, Postgres startup, Prisma generation, committed migration deploy, seed, product-boundary grep, typecheck, lint, and tests all pass.
+
+## Required full validation sequence
+
+```bash
+cp .env.example .env
+npm ci
+docker compose up -d postgres
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+bash scripts/check-product-boundary.sh
+npm run typecheck
+npm run lint
+npm test
+```
+
+CI must use `npm ci` and `npm run db:migrate:ci` so it installs from the committed lockfile and applies committed Prisma migrations without creating ad hoc migration files.
 
 ## Unit tests
 - Compliance source-policy decisions.
@@ -29,7 +47,7 @@ The Sprint 1 acceptance suite must include a DB-backed proof, not only in-memory
 - `JobListing.sourceEventId` points at the persisted source event.
 - Failed source-policy checks do not create source events or job listings.
 
-CI must run this after `npm run db:generate`, `npm run db:migrate`, and `npm run db:seed` against Postgres.
+CI must run this after `npm run db:generate`, `npm run db:migrate:ci`, and `npm run db:seed` against Postgres.
 
 ## Compliance guardrail tests
 - Indeed scraping is rejected.
@@ -39,7 +57,7 @@ CI must run this after `npm run db:generate`, `npm run db:migrate`, and `npm run
 - Credential collection and cookie/session replay are rejected.
 - Auto-save, auto-apply, auto-message, and screening-answer automation are rejected.
 - Glassdoor bulk review/salary/rating/interview content is rejected.
-- Product runtime code must not reference `.agents`, `_bmad`, Playwright, `browser automation`, or TEA browser automation config. CI runs `scripts/check-product-boundary.sh` to enforce this for `apps/` and `packages/`.
+- Product runtime code must not reference `.agents`, `_bmad`, `tools/non-product-agent-assets`, Playwright, `browser automation`, `headless`, CAPTCHA, anti-bot, credential/cookie/session replay, auto-apply, auto-message, platform auto-save, or screening-answer terms outside the explicit shared guardrail code and API tests. CI runs `scripts/check-product-boundary.sh` to enforce this for `apps/` and `packages/`.
 
 ## Parser fixture tests
 Planned parser fixtures validate deterministic extraction and review fallbacks. Parser output must include source attribution, confidence, and missing-field flags.
