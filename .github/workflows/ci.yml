@@ -35,11 +35,19 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm install
-      - run: npm run db:generate
-      - run: npm run db:migrate -- --name ci_validation
-      - run: npm run db:seed
-      - run: bash scripts/check-product-boundary.sh
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
+      - name: Install dependencies
+        run: npm ci
+      - name: Check product boundary
+        run: bash scripts/check-product-boundary.sh
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Apply committed migrations
+        run: npm run db:migrate:ci
+      - name: Seed source policies
+        run: npm run db:seed
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
